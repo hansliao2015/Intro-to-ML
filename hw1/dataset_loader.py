@@ -45,6 +45,30 @@ def save_list(pairs, filename):
         for path, label in pairs:
             f.write(f"{path} {label}\n")
 
+def check_data_leakage(train, val, test):
+    '''
+    Return True if there is data leakage
+    '''
+    train_paths = set(path for path, _ in train)
+    val_paths   = set(path for path, _ in val)
+    test_paths  = set(path for path, _ in test)
+
+    inter_train_val = train_paths & val_paths
+    inter_train_test = train_paths & test_paths
+    inter_val_test = val_paths & test_paths
+
+    if inter_train_val or inter_train_test or inter_val_test:
+        if inter_train_val:
+            print(f"  Train & Val: {len(inter_train_val)} duplicates")
+        if inter_train_test:
+            print(f"  Train & Test: {len(inter_train_test)} duplicates")
+        if inter_val_test:
+            print(f"  Val & Test: {len(inter_val_test)} duplicates")
+        return True
+    else:
+        return False
+
+
 if __name__ == "__main__":
 
     # === variables ===
@@ -62,3 +86,9 @@ if __name__ == "__main__":
     print(f"Train set size: {len(train)}")
     print(f"Validation set size: {len(val)}")
     print(f"Test set size: {len(test)}")
+
+    data_leakage = check_data_leakage(train, val, test)
+    if data_leakage: 
+        print("Data leakage")
+    else:
+        print("No data leakage")
