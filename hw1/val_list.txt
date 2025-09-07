@@ -1897,7 +1897,6 @@ digit_1/img_32315.png 1
 digit_1/img_52990.png 1
 digit_1/img_37607.png 1
 digit_1/img_16325.png 1
-digit_2/img_28218.png 2
 digit_2/img_32250.png 2
 digit_2/img_47924.png 2
 digit_2/img_33296.png 2
@@ -2790,7 +2789,8 @@ digit_2/img_48531.png 2
 digit_2/img_24844.png 2
 digit_2/img_36936.png 2
 digit_2/img_37515.png 2
-digit_3/img_29300.png 3
+digit_2/img_53500.png 2
+digit_2/img_43292.png 2
 digit_3/img_09868.png 3
 digit_3/img_52191.png 3
 digit_3/img_52168.png 3
@@ -3709,6 +3709,8 @@ digit_3/img_54910.png 3
 digit_3/img_33412.png 3
 digit_3/img_45015.png 3
 digit_3/img_09418.png 3
+digit_3/img_19501.png 3
+digit_3/img_06825.png 3
 digit_4/img_55191.png 4
 digit_4/img_04779.png 4
 digit_4/img_11378.png 4
@@ -4585,7 +4587,6 @@ digit_4/img_59106.png 4
 digit_4/img_44052.png 4
 digit_4/img_18988.png 4
 digit_4/img_52211.png 4
-digit_5/img_23438.png 5
 digit_5/img_50398.png 5
 digit_5/img_35976.png 5
 digit_5/img_58646.png 5
@@ -5398,7 +5399,7 @@ digit_5/img_40255.png 5
 digit_5/img_40993.png 5
 digit_5/img_59662.png 5
 digit_5/img_47591.png 5
-digit_6/img_33055.png 6
+digit_5/img_20914.png 5
 digit_6/img_36113.png 6
 digit_6/img_30350.png 6
 digit_6/img_10053.png 6
@@ -6285,7 +6286,8 @@ digit_6/img_36578.png 6
 digit_6/img_37208.png 6
 digit_6/img_53081.png 6
 digit_6/img_43095.png 6
-digit_7/img_09538.png 7
+digit_6/img_18704.png 6
+digit_6/img_51681.png 6
 digit_7/img_46035.png 7
 digit_7/img_49361.png 7
 digit_7/img_43168.png 7
@@ -7224,7 +7226,8 @@ digit_7/img_52235.png 7
 digit_7/img_55270.png 7
 digit_7/img_32888.png 7
 digit_7/img_44219.png 7
-digit_8/img_58448.png 8
+digit_7/img_09097.png 7
+digit_7/img_19352.png 7
 digit_8/img_34075.png 8
 digit_8/img_37130.png 8
 digit_8/img_31440.png 8
@@ -8101,6 +8104,8 @@ digit_8/img_38249.png 8
 digit_8/img_53636.png 8
 digit_8/img_44289.png 8
 digit_8/img_19201.png 8
+digit_8/img_52115.png 8
+digit_8/img_54990.png 8
 digit_9/img_31561.png 9
 digit_9/img_43982.png 9
 digit_9/img_32555.png 9

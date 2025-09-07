@@ -2,9 +2,7 @@ import os
 import random
 
 def load_dataset(file_root, seed):
-    '''
-    return dictionary: {label: file_name}
-    '''
+    """return dictionary: {label: file_name}"""
     dataset = {}
     for folder in sorted(os.listdir(file_root)):
         folder_path = os.path.join(file_root, folder)
@@ -21,14 +19,13 @@ def load_dataset(file_root, seed):
     return dataset
 
 def split_dataset(dataset, train_ratio, val_ratio, test_ratio):
-    '''
-    based on given ratio, extract files from shuffled dataset
-    '''
+    """based on given ratio, extract files from shuffled dataset"""
+
     train, val, test = [], [], []
     for label, files in dataset.items():
         N = len(files)
-        n_train = int(N * train_ratio)
-        n_val = int(N * val_ratio)
+        n_train = round(N * train_ratio)
+        n_val = round(N * val_ratio)
         n_test = N - n_train - n_val
         
         train_files = files[:n_train]
@@ -46,9 +43,8 @@ def save_list(pairs, filename):
             f.write(f"{path} {label}\n")
 
 def check_data_leakage(train, val, test):
-    '''
-    Return True if there is data leakage
-    '''
+    """Return True if there is data leakage"""
+
     train_paths = set(path for path, _ in train)
     val_paths   = set(path for path, _ in val)
     test_paths  = set(path for path, _ in test)
@@ -59,11 +55,11 @@ def check_data_leakage(train, val, test):
 
     if inter_train_val or inter_train_test or inter_val_test:
         if inter_train_val:
-            print(f"  Train & Val: {len(inter_train_val)} duplicates")
+            print(f"Train & Val: {len(inter_train_val)} duplicates")
         if inter_train_test:
-            print(f"  Train & Test: {len(inter_train_test)} duplicates")
+            print(f"Train & Test: {len(inter_train_test)} duplicates")
         if inter_val_test:
-            print(f"  Val & Test: {len(inter_val_test)} duplicates")
+            print(f"Val & Test: {len(inter_val_test)} duplicates")
         return True
     else:
         return False
