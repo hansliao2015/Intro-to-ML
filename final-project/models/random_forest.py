@@ -5,9 +5,12 @@ from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 
 def train_and_evaluate(X_train, y_train, X_val, y_val):
     model = RandomForestRegressor(
-        n_estimators=300,
-        max_depth=None,
-        random_state=42
+        n_estimators=100,          # 降低樹數，加速
+        max_depth=20,              # 限制最大深度，加速 & 減少 overfitting
+        min_samples_split=5,       # 減少深度
+        min_samples_leaf=2,        # 控制葉子數
+        random_state=42,
+        n_jobs=-1,
     )
     model.fit(X_train, y_train)
 

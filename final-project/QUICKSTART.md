@@ -1,5 +1,8 @@
 # Quick Start
 
+## 準備資料集
+- 將`train.csv`, `test.csv`, `sample_submission.csv`放到`./data`
+
 ## 訓練單一模型
 
 ```bash
