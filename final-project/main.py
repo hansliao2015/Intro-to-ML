@@ -68,8 +68,6 @@ def parse_args():
     
     parser.add_argument("--no_analysis", action="store_true",
                        help="Disable detailed analysis and visualization")
-    parser.add_argument("--save_predictions", action="store_true",
-                       help="Save validation predictions to file")
     
     return parser.parse_args()
 
