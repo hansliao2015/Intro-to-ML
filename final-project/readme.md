@@ -16,14 +16,9 @@ bash run_eda.sh
 python main.py --model dt --preprocessing v1
 ```
 
-## 訓練所有模型
+## 進行preprocess的ablation study
 
 ```bash
-bash run_all_models.sh
-```
-
-
-## 比較結果
-```bash
+bash run_ablation.sh
 bash run_comparison.sh
 ```
