@@ -1,4 +1,5 @@
 __pycache__/
 data/
-# output/
-# ablation_results/
+output/
+ablation_results/
+comparison/

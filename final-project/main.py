@@ -62,7 +62,7 @@ def parse_args():
     parser.add_argument("--output_dir", type=str, default="./output")
     parser.add_argument("--model", type=str, required=True,
                         choices=["linear", "mlp", "dt", "rf", "xgb", "lgbm"])
-    parser.add_argument("--preprocessing", type=str, default="v1", choices=["v1", "v2"])
+    parser.add_argument("--preprocessing", type=str, default="v1", choices=["v0", "v1", "v2"])
     parser.add_argument("--val_ratio", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=42)
     
@@ -76,7 +76,8 @@ def main():
     args = parse_args()
     set_seed(args.seed)
     
-    model_output_dir = os.path.join(args.output_dir, args.model)
+    # 為每個 (模型, 預處理) 組合創建獨立目錄
+    model_output_dir = os.path.join(args.output_dir, f"{args.model}_{args.preprocessing}")
     os.makedirs(model_output_dir, exist_ok=True)
     
     print(f"Model: {args.model.upper()} | Preprocessing: {args.preprocessing}")
