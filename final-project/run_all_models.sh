@@ -9,7 +9,7 @@ echo ""
 
 # 設定參數
 DATA_DIR="./data"
-OUTPUT_DIR="./output"
+OUTPUT_DIR="./ablation"
 SEED=42
 
 # 要跑的模型列表
