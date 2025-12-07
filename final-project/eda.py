@@ -3,147 +3,202 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import json
 
 
 def run_eda(train_df, output_dir):
     os.makedirs(output_dir, exist_ok=True)
-    
-    print(f"Generating EDA visualizations in {output_dir}/")
-    
-    # 1. Correlation heatmap (只顯示數值特徵)
+
+    print(f"Running EDA... Output directory: {output_dir}/")
+
+    # Identify numerical / categorical features
     num_cols = train_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    cat_cols = train_df.select_dtypes(include=['object']).columns.tolist()
+    if 'ID' in num_cols:
+        num_cols.remove('ID')
     if 'price' in num_cols:
         num_cols.remove('price')
-        num_cols = ['price'] + num_cols  # price 放第一個
-    
-    corr = train_df[num_cols].corr()
-    
-    plt.figure(figsize=(12, 10))
-    sns.heatmap(corr, annot=True, fmt='.2f', cmap='coolwarm', center=0, 
-                square=True, linewidths=0.5, cbar_kws={"shrink": 0.8})
-    plt.title('EDA : correlation heatmap', fontsize=14, pad=20)
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'eda_correlation_heatmap.png'), dpi=150)
-    plt.close()
-    print("  ✓ correlation heatmap")
-    
-    # 2. Price distribution by propertyType
-    if 'propertyType' in train_df.columns:
-        plt.figure(figsize=(12, 6))
-        property_types = train_df['propertyType'].value_counts().index[:5]  # 取前5種
-        data_to_plot = [train_df[train_df['propertyType'] == pt]['price'].dropna() 
-                        for pt in property_types]
-        
-        plt.boxplot(data_to_plot, labels=property_types)
-        plt.ylabel('Price')
-        plt.xlabel('Property Type')
-        plt.title('EDA : price distribution by propertyType', fontsize=14, pad=20)
-        plt.xticks(rotation=45, ha='right')
-        plt.grid(True, alpha=0.3, axis='y')
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, 'eda_price_by_propertyType.png'), dpi=150)
-        plt.close()
-        print("  ✓ price distribution by propertyType")
-    
-    # 3. Price distribution by bedrooms
-    if 'bedrooms' in train_df.columns:
-        plt.figure(figsize=(12, 6))
-        bedrooms_counts = train_df['bedrooms'].value_counts().sort_index()
-        bedroom_vals = bedrooms_counts.index[:8]  # 取前8種
-        
-        data_to_plot = [train_df[train_df['bedrooms'] == br]['price'].dropna() 
-                        for br in bedroom_vals]
-        
-        plt.boxplot(data_to_plot, labels=bedroom_vals)
-        plt.ylabel('Price')
-        plt.xlabel('Number of Bedrooms')
-        plt.title('EDA : price distribution by bedrooms', fontsize=14, pad=20)
-        plt.grid(True, alpha=0.3, axis='y')
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, 'eda_price_by_bedrooms.png'), dpi=150)
-        plt.close()
-        print("  ✓ price distribution by bedrooms")
-    
-    # 4. Price distribution by region/outcode
-    if 'region' in train_df.columns:
-        plt.figure(figsize=(14, 6))
-        top_regions = train_df['region'].value_counts().index[:10]
-        
-        data_to_plot = [train_df[train_df['region'] == reg]['price'].dropna() 
-                        for reg in top_regions]
-        
-        plt.boxplot(data_to_plot, labels=top_regions)
-        plt.ylabel('Price')
-        plt.xlabel('Region')
-        plt.title('EDA : price distribution by region/outcode', fontsize=14, pad=20)
-        plt.xticks(rotation=45, ha='right')
-        plt.grid(True, alpha=0.3, axis='y')
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, 'eda_price_by_region.png'), dpi=150)
-        plt.close()
-        print("  ✓ price distribution by region/outcode")
-    
-    # 5. Missing values visualization
-    plt.figure(figsize=(12, 6))
+
+    print(f"Rows: {len(train_df):,}, Columns: {len(train_df.columns)}")
+    print(f"Numerical: {len(num_cols)}, Categorical: {len(cat_cols)}")
+
+    # ===== 1. Missing values =====
     missing = train_df.isnull().sum()
     missing = missing[missing > 0].sort_values(ascending=False)
-    
-    if len(missing) > 0:
-        missing_pct = (missing / len(train_df)) * 100
-        
-        plt.barh(range(len(missing)), missing_pct, color='coral')
-        plt.yticks(range(len(missing)), missing.index)
-        plt.xlabel('Missing Percentage (%)')
-        plt.title('EDA : missing values visualization', fontsize=14, pad=20)
-        plt.grid(True, alpha=0.3, axis='x')
-        
-        for i, v in enumerate(missing_pct):
-            plt.text(v + 0.5, i, f'{v:.1f}%', va='center')
+    missing_df = pd.DataFrame({
+        'feature': missing.index,
+        'missing_count': missing.values,
+        'missing_percentage': (missing.values / len(train_df) * 100).round(2)
+    }) if len(missing) else pd.DataFrame()
+
+    # ===== 2. Target distribution =====
+    price = train_df['price'].dropna()
+    price_quantiles = {f"q{int(q*100)}": float(price.quantile(q)) for q in [0.25, 0.5, 0.75, 0.9, 0.95]}
+
+    # ===== 3. Categorical feature summary =====
+    cat_summary = []
+    for col in cat_cols:
+        vc = train_df[col].value_counts()
+        n_unique = len(vc)
+        top_pct = (vc.iloc[0] / len(train_df) * 100) if len(vc) > 0 else 0
+        cat_summary.append({
+            'feature': col,
+            'unique_values': n_unique,
+            'top_freq_pct': round(top_pct, 2)
+        })
+
+    # ===== 4. Numerical feature summary =====
+    num_summary = []
+    for col in num_cols:
+        vals = train_df[col].dropna()
+        num_summary.append({
+            'feature': col,
+            'mean': float(vals.mean()),
+            'median': float(vals.median()),
+            'std': float(vals.std()),
+            'min': float(vals.min()),
+            'max': float(vals.max()),
+            'skewness': float(vals.skew())
+        })
+
+    # ===== 5. Correlation with price =====
+    correlations = []
+    for col in num_cols:
+        c = train_df[['price', col]].corr().iloc[0, 1]
+        correlations.append((col, float(0 if pd.isna(c) else c)))
+    correlations.sort(key=lambda x: abs(x[1]), reverse=True)
+
+    # ===== 6. Safe correlation heatmap =====
+    num_cols_for_heatmap = ['price'] + num_cols
+    if len(num_cols_for_heatmap) <= 40:  # Prevent crash
+        plt.figure(figsize=(12, 10))
+        sns.heatmap(train_df[num_cols_for_heatmap].corr(),
+                    annot=True, fmt=".2f", cmap="coolwarm", square=True)
+        plt.title("Correlation Heatmap")
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, "eda_correlation_heatmap.png"), dpi=150)
+        plt.close()
+        print("  ✓ correlation heatmap")
     else:
-        plt.text(0.5, 0.5, 'No missing values', ha='center', va='center', fontsize=14)
-        plt.xlim(0, 1)
-        plt.ylim(0, 1)
-        plt.axis('off')
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'eda_missing_values.png'), dpi=150)
-    plt.close()
-    print("  ✓ missing values visualization")
-    
-    # 6. Outlier visualization (price)
-    plt.figure(figsize=(12, 6))
-    
+        print(f"  Skipping heatmap (too many features: {len(num_cols_for_heatmap)})")
+
+    # ===== 7. Boxplots for categorical features =====
+    def safe_boxplot(df, group_col, filename, max_groups=10):
+        if group_col not in df.columns:
+            return
+
+        vc = df[group_col].value_counts()
+        groups = vc.index[:max_groups]
+
+        data_to_plot = []
+        labels = []
+
+        for g in groups:
+            subset = df[df[group_col] == g]['price'].dropna()
+            if len(subset) >= 10:  # Avoid misleading plots
+                data_to_plot.append(subset)
+                labels.append(str(g))
+
+        if len(data_to_plot) == 0:
+            print(f"  Skipping boxplot for {group_col} (no valid data)")
+            return
+
+        plt.figure(figsize=(12, 6))
+        plt.boxplot(data_to_plot)
+        plt.xticks(range(1, len(labels)+1), labels, rotation=45, ha='right')
+        plt.ylabel("Price")
+        plt.title(f"Price distribution by {group_col}")
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, filename), dpi=150)
+        plt.close()
+        print(f"  ✓ boxplot for {group_col}")
+
+    safe_boxplot(train_df, 'propertyType', "eda_price_propertyType.png")
+    safe_boxplot(train_df, 'bedrooms', "eda_price_bedrooms.png")
+    safe_boxplot(train_df, 'region', "eda_price_region.png")
+
+    # ===== 8. Missing values bar plot =====
+    if len(missing):
+        plt.figure(figsize=(10, 6))
+        missing_pct = missing / len(train_df) * 100
+        plt.barh(missing_pct.index, missing_pct.values, color='salmon')
+        plt.xlabel("Missing %")
+        plt.title("Missing Values")
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'eda_missing_values.png'), dpi=150)
+        plt.close()
+        print("  ✓ missing values plot")
+
+    # ===== 9. Outlier visualization =====
+    plt.figure(figsize=(12, 5))
     plt.subplot(1, 2, 1)
-    plt.hist(train_df['price'], bins=50, color='skyblue', edgecolor='black')
-    plt.xlabel('Price')
-    plt.ylabel('Frequency')
-    plt.title('Price Distribution')
-    plt.grid(True, alpha=0.3)
-    
+    plt.hist(price, bins=50, edgecolor='black')
+    plt.title("Price Distribution")
+
     plt.subplot(1, 2, 2)
-    plt.boxplot(train_df['price'].dropna(), vert=True)
-    plt.ylabel('Price')
-    plt.title('Price Boxplot (Outliers)')
-    plt.grid(True, alpha=0.3, axis='y')
-    
-    plt.suptitle('EDA : outlier visualization', fontsize=14, y=1.02)
+    plt.boxplot(price)
+    plt.title("Price Outliers")
+
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'eda_outlier_visualization.png'), dpi=150)
+    plt.savefig(os.path.join(output_dir, "eda_outliers.png"), dpi=150)
     plt.close()
     print("  ✓ outlier visualization")
-    
-    # Summary statistics
-    stats = train_df.describe(include='all')
-    stats.to_csv(os.path.join(output_dir, 'eda_summary.csv'))
-    print(f"  ✓ summary statistics saved to eda_summary.csv")
+
+    # ===== 10. Correlation bar chart =====
+    plt.figure(figsize=(10, 6))
+    names = [c[0] for c in correlations]
+    vals = [c[1] for c in correlations]
+    colors = ['green' if v > 0 else 'red' for v in vals]
+
+    plt.barh(names, vals, color=colors)
+    plt.axvline(0, color='black')
+    plt.title("Feature Correlation with Price")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "eda_feature_correlation.png"), dpi=150)
+    plt.close()
+    print("  ✓ feature correlation chart")
+
+    # ===== 11. JSON summary =====
+    def convert(obj):
+        if isinstance(obj, (pd.DataFrame, pd.Series)):
+            return obj.to_dict(orient="records")
+        if isinstance(obj, np.generic):
+            return obj.item()
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, dict):
+            return {k: convert(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [convert(v) for v in obj]
+        return obj
+
+    summary = {
+        "dataset_info": {
+            "rows": int(len(train_df)),
+            "cols": int(len(train_df.columns)),
+        },
+        "missing_values": convert(missing_df),
+        "target_stats": {
+            "mean": float(price.mean()),
+            "median": float(price.median()),
+            "std": float(price.std()),
+            "skewness": float(price.skew()),
+            "quantiles": price_quantiles
+        },
+        "numerical_features": convert(num_summary),
+        "categorical_features": convert(cat_summary),
+        "correlations": [{"feature": f, "corr": c} for f, c in correlations]
+    }
+
+    with open(os.path.join(output_dir, "eda_analysis.json"), "w") as f:
+        json.dump(summary, f, indent=2)
+
+    print("\nEDA complete!")
+    print(f"Plots saved: {len([f for f in os.listdir(output_dir) if f.endswith('.png')])}")
+    print(f"Summary saved to: eda_analysis.json\n")
 
 
 if __name__ == "__main__":
     from preprocessing import load_data
-    
-    # 預設參數
-    data_dir = "./data"
-    output_dir = "./eda"
-    
-    train_df, _ = load_data(data_dir)
-    run_eda(train_df, output_dir)
+    train_df, _ = load_data("./data")
+    run_eda(train_df, "./eda")
