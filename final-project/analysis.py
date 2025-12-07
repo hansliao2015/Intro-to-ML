@@ -4,7 +4,7 @@ import time
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error, r2_score, mean_squared_error
 from datetime import datetime
 
 
@@ -38,6 +38,7 @@ class ModelAnalyzer:
         return {
             f'{prefix}_mae': mean_absolute_error(y_true, y_pred),
             f'{prefix}_rmse': root_mean_squared_error(y_true, y_pred),
+            f'{prefix}_mse': mean_squared_error(y_true, y_pred),
             f'{prefix}_r2': r2_score(y_true, y_pred),
             f'{prefix}_mape': np.mean(np.abs((y_true - y_pred) / y_true)) * 100,
         }
@@ -142,18 +143,6 @@ class ModelAnalyzer:
 
         with open(os.path.join(self.output_dir, 'report.json'), 'w') as f:
             json.dump(report, f, indent=2)
-
-        with open(os.path.join(self.output_dir, 'report.txt'), 'w') as f:
-            f.write(f"Model: {self.model_name}\n")
-            f.write(f"Timestamp: {report['timestamp']}\n")
-            f.write(f"Training Time: {report['training_time_seconds']:.2f}s\n\n")
-            f.write("Config:\n")
-            for k, v in config.items(): f.write(f"  {k}: {v}\n")
-            f.write("\nTraining Metrics:\n")
-            for k, v in train_metrics.items(): f.write(f"  {k}: {v:.4f}\n")
-            f.write("\nValidation Metrics:\n")
-            for k, v in val_metrics.items(): f.write(f"  {k}: {v:.4f}\n")
-            f.write("\n")
 
     def generate_full_analysis(self, model, X_train, y_train, X_val, y_val, feature_names=None, config=None):
         print("Generating Full Analysis Report")

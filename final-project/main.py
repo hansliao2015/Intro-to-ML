@@ -23,22 +23,6 @@ def save_submission(test_ids, preds, output_dir, file_name):
     df.to_csv(os.path.join(output_dir, file_name), index=False)
 
 
-def save_report(output_dir, model_name, val_mae, val_rmse, extra_info):
-    os.makedirs(output_dir, exist_ok=True)
-    path = os.path.join(output_dir, f"report_{model_name}.txt")
-
-    lines = []
-    lines.append(f"Model: {model_name}")
-    lines.append(f"Validation MAE: {val_mae:.4f}")
-    lines.append(f"Validation RMSE: {val_rmse:.4f}")
-
-    for key, value in extra_info.items():
-        lines.append(f"{key}: {value}")
-
-    with open(path, "w") as f:
-        f.write("\n".join(lines))
-
-
 def get_model_module(model_name):
     if model_name == "dt":
         return decision_tree
@@ -110,39 +94,59 @@ def main():
     model_module = get_model_module(args.model)
     
     analyzer.start_training()
-    model, val_mae, val_rmse, extra_info = model_module.train_and_evaluate(
+    model, _, _, extra_info = model_module.train_and_evaluate(
         X_train, y_train, X_val, y_val
     )
     training_time = analyzer.end_training()
+
+    # 完整分析與指標計算
+    print(f"\n[5/6] Computing metrics and generating analysis...")
     
-    print(f"\n  Validation MAE : {val_mae:.4f}")
-    print(f"  Validation RMSE: {val_rmse:.4f}")
-
-    # 儲存基本報告
-    extra_info['training_time'] = f"{training_time:.2f}s"
-    extra_info['preprocessing'] = args.preprocessing
-    extra_info['train_samples'] = X_train.shape[0]
-    extra_info['val_samples'] = X_val.shape[0]
-    save_report(model_output_dir, args.model, val_mae, val_rmse, extra_info)
-
-    # 完整分析（如果啟用）
+    # 計算完整的訓練和驗證指標（analysis 自己算）
+    y_train_pred = model.predict(X_train)
+    y_val_pred = model.predict(X_val)
+    
+    train_metrics = analyzer.compute_metrics(y_train, y_train_pred, 'train')
+    val_metrics = analyzer.compute_metrics(y_val, y_val_pred, 'val')
+    
+    # 顯示驗證指標
+    print(f"\n  Validation Metrics:")
+    print(f"    MAE  : {val_metrics['val_mae']:.4f}")
+    print(f"    RMSE : {val_metrics['val_rmse']:.4f}")
+    print(f"    MSE  : {val_metrics['val_mse']:.4f}")
+    print(f"    R²   : {val_metrics['val_r2']:.4f}")
+    print(f"    MAPE : {val_metrics['val_mape']:.2f}%")
+    
+    # 設定配置資訊
+    config = {
+        'model': args.model,
+        'preprocessing': args.preprocessing,
+        'val_ratio': args.val_ratio,
+        'seed': args.seed,
+        'n_features': X.shape[1],
+        'train_samples': X_train.shape[0],
+        'val_samples': X_val.shape[0],
+    }
+    config.update(extra_info)
+    
+    # 儲存完整報告（包含所有指標）
+    analyzer.save_summary_report(
+        train_metrics, val_metrics, 
+        {'test_samples': X_test.shape[0]}, 
+        config
+    )
+    
+    # 生成視覺化（如果啟用）
     if not args.no_analysis:
-        print("\n[5/6] Generating analysis and visualizations...")
-        config = {
-            'model': args.model,
-            'preprocessing': args.preprocessing,
-            'val_ratio': args.val_ratio,
-            'seed': args.seed,
-            'n_features': X.shape[1],
-        }
-        
-        train_metrics, val_metrics = analyzer.generate_full_analysis(
-            model, X_train, y_train, X_val, y_val, 
-            feature_names=feature_names, 
-            config=config
-        )
+        print(f"  Generating visualizations...")
+        analyzer.plot_predictions(y_val, y_val_pred)
+        analyzer.plot_error_distribution(y_val, y_val_pred)
+        analyzer.plot_training_history()
+        if feature_names:
+            analyzer.plot_feature_importance(model, feature_names)
+        print(f"  ✓ Analysis complete")
     else:
-        print("\n[5/6] Skipping detailed analysis (--no_analysis)")
+        print(f"  Skipping visualizations (--no_analysis)")
 
     # 預測 test set
     print(f"\n[6/6] Predicting test set...")

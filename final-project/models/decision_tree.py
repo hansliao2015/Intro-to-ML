@@ -17,8 +17,10 @@ def train_and_evaluate(X_train, y_train, X_val, y_val):
     val_rmse = root_mean_squared_error(y_val, preds)
 
     extra_info = {
-        "depth": model.get_depth(),
-        "leaves": model.get_n_leaves()
+        "max_depth": 15,
+        "min_samples_split": 5,
+        "actual_depth": int(model.get_depth()),
+        "n_leaves": int(model.get_n_leaves())
     }
 
     return model, val_mae, val_rmse, extra_info
