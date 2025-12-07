@@ -144,6 +144,7 @@ def main():
         analyzer.plot_training_history()
         if feature_names:
             analyzer.plot_feature_importance(model, feature_names)
+            analyzer.plot_shap_analysis(model, X_val, feature_names=feature_names)
         print(f"  ✓ Analysis complete")
     else:
         print(f"  Skipping visualizations (--no_analysis)")
