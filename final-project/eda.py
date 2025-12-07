@@ -158,7 +158,95 @@ def run_eda(train_df, output_dir):
     plt.close()
     print("  ✓ feature correlation chart")
 
-    # ===== 11. JSON summary =====
+    # ===== 11. Geographic Analysis =====
+    if 'latitude' in train_df.columns and 'longitude' in train_df.columns:
+        print("  Generating geographic analysis...")
+        
+        # Remove rows with missing lat/lon or price
+        geo_df = train_df[['latitude', 'longitude', 'price']].dropna()
+        
+        if len(geo_df) > 0:
+            # Sample data if too large (for performance)
+            sample_size = min(10000, len(geo_df))
+            if len(geo_df) > sample_size:
+                geo_sample = geo_df.sample(n=sample_size, random_state=42)
+            else:
+                geo_sample = geo_df
+            
+            fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+            
+            # Left: Geographic scatter colored by price
+            scatter = axes[0].scatter(
+                geo_sample['longitude'], 
+                geo_sample['latitude'],
+                c=geo_sample['price'],
+                cmap='YlOrRd',
+                alpha=0.6,
+                s=10
+            )
+            axes[0].set_xlabel('Longitude')
+            axes[0].set_ylabel('Latitude')
+            axes[0].set_title(f'Geographic Distribution (N={len(geo_sample):,})')
+            plt.colorbar(scatter, ax=axes[0], label='Price')
+            axes[0].grid(True, alpha=0.3)
+            
+            # Right: Price heatmap by location bins
+            # Create 2D histogram
+            try:
+                h, xedges, yedges = np.histogram2d(
+                    geo_sample['longitude'], 
+                    geo_sample['latitude'],
+                    bins=[30, 30],
+                    weights=geo_sample['price']
+                )
+                counts, _, _ = np.histogram2d(
+                    geo_sample['longitude'],
+                    geo_sample['latitude'],
+                    bins=[30, 30]
+                )
+                
+                # Average price per bin
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    avg_price = np.where(counts > 0, h / counts, np.nan)
+                
+                im = axes[1].imshow(
+                    avg_price.T,
+                    origin='lower',
+                    aspect='auto',
+                    cmap='YlOrRd',
+                    extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]]
+                )
+                axes[1].set_xlabel('Longitude')
+                axes[1].set_ylabel('Latitude')
+                axes[1].set_title('Average Price Heatmap')
+                plt.colorbar(im, ax=axes[1], label='Avg Price')
+                axes[1].grid(True, alpha=0.3)
+            except Exception as e:
+                print(f"  Warning: Could not generate heatmap ({e})")
+                axes[1].text(0.5, 0.5, 'Heatmap generation failed', 
+                           ha='center', va='center', transform=axes[1].transAxes)
+            
+            plt.tight_layout()
+            plt.savefig(os.path.join(output_dir, 'eda_geographic_analysis.png'), dpi=150)
+            plt.close()
+            print("  ✓ geographic analysis")
+            
+            # Compute geographic correlation
+            geo_corr_lat = geo_df[['latitude', 'price']].corr().iloc[0, 1]
+            geo_corr_lon = geo_df[['longitude', 'price']].corr().iloc[0, 1]
+            geo_stats = {
+                'latitude_correlation': float(geo_corr_lat if not pd.isna(geo_corr_lat) else 0),
+                'longitude_correlation': float(geo_corr_lon if not pd.isna(geo_corr_lon) else 0),
+                'samples_with_location': int(len(geo_df))
+            }
+        else:
+            print("  Warning: No valid geographic data found")
+            geo_stats = None
+    else:
+        print("  Skipping geographic analysis (latitude/longitude not found)")
+        geo_stats = None
+
+    # ===== 12. JSON summary =====
     def convert(obj):
         if isinstance(obj, (pd.DataFrame, pd.Series)):
             return obj.to_dict(orient="records")
@@ -187,7 +275,8 @@ def run_eda(train_df, output_dir):
         },
         "numerical_features": convert(num_summary),
         "categorical_features": convert(cat_summary),
-        "correlations": [{"feature": f, "corr": c} for f, c in correlations]
+        "correlations": [{"feature": f, "corr": c} for f, c in correlations],
+        "geographic_analysis": geo_stats if geo_stats else "not_available"
     }
 
     with open(os.path.join(output_dir, "eda_analysis.json"), "w") as f:
