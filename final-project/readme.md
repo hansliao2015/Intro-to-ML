@@ -11,8 +11,10 @@ bash run_eda.sh
 - 結果會輸出到`./eda/`
 
 ## 訓練單一模型
-
-- to be added
+- 參數可以自己指定，細節請看`main.py`
+```bash
+python main.py --model dt --preprocessing v1
+```
 
 ## 訓練所有模型
 
@@ -22,5 +24,6 @@ bash run_all_models.sh
 
 
 ## 比較結果
-
-- to be added
+```bash
+bash run_comparison.sh
+```
